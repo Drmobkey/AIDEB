@@ -1,0 +1,24 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Next.js build output (will be rebuilt inside Docker)
+.next
+out
+build
+
+# Dev & IDE
+.git
+.gitignore
+.eslintrc*
+.vscode
+*.md
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose*
+.dockerignore

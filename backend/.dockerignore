@@ -1,0 +1,25 @@
+# Cache python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment virtual lokal
+.venv/
+venv/
+ENV/
+env/
+
+# Data lokal (akan menggunakan volume mount saat runtime)
+uploads/*
+!uploads/.gitkeep
+
+# Git & Editor configuration
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Docker configuration
+Dockerfile
+.dockerignore
+docker-compose.yml
