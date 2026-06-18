@@ -25,7 +25,7 @@ export default function DashboardPage() {
 
   // --- PROTEKSI HALAMAN (SOP Keamanan Modul 1) ---
   useEffect(() => {
-    const token = localStorage.getItem('detuji_token');
+    const token = localStorage.getItem('aideb_token');
     if (!token) {
       router.push('/login');
     } else {
@@ -35,7 +35,7 @@ export default function DashboardPage() {
 
   // Fungsi Logout Admin
   const handleLogout = () => {
-    localStorage.removeItem('detuji_token');
+    localStorage.removeItem('aideb_token');
     router.push('/login');
   };
 
@@ -76,7 +76,7 @@ export default function DashboardPage() {
   const handleAnalyse = async (e) => {
     e.preventDefault();
     if (!selectedFile) {
-      setError('Silakan pilih berkas gambar CT Scan terlebih dahulu!');
+      setError('Silakan pilih berkas gambar MRI terlebih dahulu!');
       return;
     }
 
@@ -90,7 +90,6 @@ export default function DashboardPage() {
     formData.append('nama_pasien', namaPasien.trim() || 'Anonim');
     formData.append('no_rm', noRm.trim() || '-');
 
-
     try {
       const res = await fetch(`${API_BASE_URL}/api/predict`, {
         method: 'POST',
@@ -103,7 +102,7 @@ export default function DashboardPage() {
         const finalData = result.data ? result.data : result;
 
         setAnalysisResult({
-          analysis_id: finalData.analysis_id || `DETUJI-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+          analysis_id: finalData.analysis_id || `AIDEB-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
           nama_pasien: finalData.nama_pasien || namaPasien || 'Anonim',
           no_rm: finalData.no_rm || noRm || '-',
           filename: finalData.saved_filename || finalData.filename || 'file_scan.png',
@@ -113,7 +112,7 @@ export default function DashboardPage() {
           message: finalData.message
         });
       } else {
-        setError(result.error || result.message || 'Gagal memproses gambar CT Scan.');
+        setError(result.error || result.message || 'Gagal memproses gambar MRI.');
       }
     } catch (err) {
       setError('Tidak dapat terhubung dengan mesin AI di server backend.');
@@ -122,11 +121,10 @@ export default function DashboardPage() {
     }
   };
 
-  // --- UNDUH LAPORAN RADIOLOGI PDF ---
+  // --- UNDUH LAPORAN PDF ---
   const handleDownloadPDF = async () => {
     if (!analysisResult) return;
     setDownloadingPdf(true);
-
 
     try {
       const defaultFilename = `Hasil_Analisis_${analysisResult.no_rm}_${analysisResult.nama_pasien.replace(/ /g, '_')}.pdf`;
@@ -167,11 +165,9 @@ export default function DashboardPage() {
             await writable.close();
             return; // Berhasil menyimpan menggunakan Dialog Simpan Bawaan OS
           } catch (err) {
-            // Jika user membatalkan (klik Cancel) pada dialog simpan bawaan OS
             if (err.name === 'AbortError') {
               return;
             }
-            // Untuk error lainnya, kita gunakan fallback
             console.error('showSaveFilePicker failed, falling back to standard download:', err);
           }
         }
@@ -179,7 +175,6 @@ export default function DashboardPage() {
         // 2. Fallback: Gunakan browser prompt klasik untuk merename file, lalu unduh biasa
         const customName = prompt('Simpan laporan dengan nama file:', defaultFilename);
         if (customName === null) {
-          // User menekan cancel pada prompt
           return;
         }
 
@@ -210,14 +205,14 @@ export default function DashboardPage() {
 
   if (!authorized) return null; // Cegah berkedip sebelum dilempar ke login
 
-  const isTumor = analysisResult?.prediction?.toLowerCase().includes('tumor');
+  const isEpilepsi = analysisResult?.prediction?.toLowerCase().includes('epilepsi');
   const isLowConfidence = analysisResult?.confidence < 70;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex flex-col font-sans relative">
 
       {/* Ambient background decorations */}
-      <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-light-medis/10 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-light-medis/30 rounded-full blur-[120px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-0 w-[400px] h-[400px] bg-primary-medis/5 rounded-full blur-[100px] pointer-events-none z-0" />
 
       {/* ======================= NAVBAR UTAMA ======================= */}
@@ -227,10 +222,10 @@ export default function DashboardPage() {
             <Activity className="w-4 h-4 text-white" />
           </div>
           <span className="text-lg font-black text-dark-medis tracking-tight">
-            Detuji<span className="text-primary-medis">-CT</span>
+            AIDEB<span className="text-primary-medis">.AI</span>
           </span>
           <span className="text-[10px] text-slate-400 font-semibold bg-slate-50 px-2.5 py-1 rounded-md hidden md:inline border border-slate-100">
-            Sistem Deteksi Tumor Ginjal
+            Sistem Deteksi Epilepsi
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -261,7 +256,7 @@ export default function DashboardPage() {
               <FolderHeart className="w-4.5 h-4.5 text-primary-medis" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-dark-medis">Data Pasien & Citra</h2>
+              <h2 className="text-sm font-bold text-dark-medis">Data Pasien & Citra MRI</h2>
               <p className="text-slate-400 text-[11px]">Isi formulir berikut sebelum mengeksekusi analisis komputer</p>
             </div>
           </div>
@@ -299,12 +294,11 @@ export default function DashboardPage() {
             {/* AREA BOX UPLOAD GAMBAR */}
             <div>
               <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 tracking-wider">
-                Unggah Citra CT Scan
+                Unggah Citra MRI Otak
               </label>
               <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-slate-300/70 rounded-2xl bg-gradient-to-b from-slate-50/50 to-slate-50 hover:from-primary-medis/[0.02] hover:to-secondary-medis/[0.03] hover:border-primary-medis/30 cursor-pointer group transition-all duration-300 overflow-hidden relative">
 
                 {imagePreview ? (
-                  // Jika gambar sudah dipilih
                   selectedFile?.name?.toLowerCase().endsWith('.dcm') ? (
                     <div className="flex flex-col items-center justify-center p-6 text-center h-full w-full animate-fade-in">
                       <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-50 to-teal-100 text-teal-600 flex items-center justify-center mb-3 border border-teal-200/80 shadow-sm">
@@ -312,23 +306,21 @@ export default function DashboardPage() {
                       </div>
                       <p className="text-sm font-bold text-dark-medis max-w-[90%] truncate">{selectedFile?.name}</p>
                       <p className="text-[11px] text-slate-400 mt-1">Berkas Medis DICOM (Pratinjau visual tidak didukung oleh browser)</p>
-                      <p className="text-[10px] text-teal-600 bg-teal-50 border border-teal-100 px-2.5 py-1 rounded-full mt-2.5 font-bold uppercase shadow-sm">
+                      <p className="text-[10px] text-primary-medis bg-teal-50 border border-teal-100 px-2.5 py-1 rounded-full mt-2.5 font-bold uppercase shadow-sm">
                         Format DICOM Terdeteksi
                       </p>
                     </div>
                   ) : (
-                    // Pratinjau gambar standar
                     <picture className="animate-fade-in">
-                      <img src={imagePreview} alt="Preview CT Scan" className="w-full h-full object-contain p-2" />
+                      <img src={imagePreview} alt="Preview MRI" className="w-full h-full object-contain p-2" />
                     </picture>
                   )
                 ) : (
-                  // Jika belum ada gambar, tampilkan ikon upload petunjuk standar
                   <div className="flex flex-col items-center justify-center p-6 text-center">
                     <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary-medis/10 group-hover:text-primary-medis transition-all duration-300 mb-3 group-hover:scale-105">
                       <Upload className="w-5 h-5" />
                     </div>
-                    <p className="text-sm font-bold text-dark-medis">Pilih Berkas Citra CT Scan</p>
+                    <p className="text-sm font-bold text-dark-medis">Pilih Berkas Citra MRI</p>
                     <p className="text-[11px] text-slate-400 mt-1">Mendukung format PNG, JPG, JPEG, atau DICOM (.dcm)</p>
                   </div>
                 )}
@@ -363,7 +355,7 @@ export default function DashboardPage() {
                     <div className="text-cyan-400 text-[10px] font-black tracking-[0.15em] uppercase flex flex-col items-center gap-1.5">
                       <span className="flex items-center gap-2 animate-pulse">
                         <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                        Memindai Citra Ginjal...
+                        Memindai Citra Otak...
                       </span>
                       <span className="text-[9px] text-cyan-400/50 font-bold tracking-wider">Deep Learning AI Analysis</span>
                     </div>
@@ -421,7 +413,7 @@ export default function DashboardPage() {
               <div className="mt-5 space-y-4 animate-fade-in">
 
                 {/* Kotak Besar Status Diagnosis Penyakit */}
-                <div className={`p-5 rounded-2xl border flex flex-col items-center justify-center text-center ${isTumor
+                <div className={`p-5 rounded-2xl border flex flex-col items-center justify-center text-center ${isEpilepsi
                   ? 'bg-gradient-to-br from-red-50 to-red-50/50 border-red-200/70 text-red-900'
                   : 'bg-gradient-to-br from-emerald-50 to-green-50/50 border-green-200/70 text-green-900'
                   }`}>
@@ -429,7 +421,7 @@ export default function DashboardPage() {
                     Diagnosis Sementara
                   </span>
                   <div className="flex items-center gap-2.5 text-2xl font-black">
-                    {isTumor ? (
+                    {isEpilepsi ? (
                       <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
                         <AlertCircle className="w-5 h-5 text-red-600" />
                       </div>
@@ -441,15 +433,15 @@ export default function DashboardPage() {
                     {analysisResult.prediction.toUpperCase()}
                   </div>
                   <p className="text-[11px] text-slate-400 mt-2.5 max-w-xs leading-relaxed">
-                    {isTumor ? (
+                    {isEpilepsi ? (
                       <>
-                        Terdeteksi anomali massa sel yang tidak wajar pada ginjal. Disarankan untuk melakukan konfirmasi laboratorium lebih lanjut.
+                        Terdeteksi adanya pola gelombang/aktivitas anomali yang mengindikasikan epilepsi pada citra MRI otak.
                         <span className="block mt-2 font-bold text-red-500 text-[10px]">
-                          *Catatan: Segera konsultasikan hasil analisis ini dengan dokter spesialis untuk pemeriksaan klinis lebih lanjut.
+                          *Catatan: Segera konsultasikan hasil analisis ini dengan Dokter Spesialis Neurologi untuk pemeriksaan klinis lebih lanjut.
                         </span>
                       </>
                     ) : (
-                      'Struktur jaringan sel ginjal bersih dari indikasi massa neoplasma tumor.'
+                      'Struktur jaringan sel dan anatomi otak normal, bersih dari indikasi epilepsi.'
                     )}
                   </p>
                 </div>
@@ -465,7 +457,7 @@ export default function DashboardPage() {
                       Tingkat Kepercayaan Rendah ({analysisResult.confidence.toString().replace('.', ',')}%)
                     </div>
                     <p className="text-[11px] text-amber-700/80 max-w-xs leading-relaxed">
-                      {analysisResult.message || "Model AI ragu-ragu. Struktur anatomi gambar tidak dikenali sebagai CT Scan Ginjal yang valid."}
+                      {analysisResult.message || "Model AI ragu-ragu. Struktur anatomi gambar tidak dikenali sebagai MRI Otak yang valid."}
                     </p>
                   </div>
                 )}
@@ -480,7 +472,7 @@ export default function DashboardPage() {
                     <div
                       className={`h-full rounded-full animate-progress-glow ${isLowConfidence
                         ? 'bg-gradient-to-r from-amber-400 to-amber-500'
-                        : isTumor
+                        : isEpilepsi
                           ? 'bg-gradient-to-r from-red-400 to-red-500'
                           : 'bg-gradient-to-r from-emerald-400 to-green-500'
                         }`}
@@ -495,7 +487,7 @@ export default function DashboardPage() {
                     { label: 'Nama Pasien', value: analysisResult.nama_pasien, truncate: true },
                     { label: 'No Rekam Medis', value: analysisResult.no_rm },
                     { label: 'ID Laporan Medis', value: analysisResult.analysis_id, mono: true },
-                    { label: 'Waktu Analisis', value: analysisResult.timestamp.split(' ')[1] },
+                    { label: 'Waktu Analisis', value: analysisResult.timestamp },
                   ].map((item, i) => (
                     <div key={i} className="bg-slate-50/80 p-3 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors">
                       <span className="block text-[9px] text-slate-400 font-bold uppercase tracking-wider">{item.label}</span>

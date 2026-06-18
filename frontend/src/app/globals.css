@@ -178,8 +178,9 @@ body {
 
 /* Gradient text utility */
 .text-gradient-medis {
-  background: linear-gradient(135deg, #3282B8 0%, #0F4C75 50%, #BBE1FA 100%);
+  background: linear-gradient(135deg, #14B8A6 0%, #0A7C6E 50%, #F0FDFA 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+

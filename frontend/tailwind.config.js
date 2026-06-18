@@ -8,10 +8,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'dark-medis': '#1B262C',    // Navy Gelap
-        'primary-medis': '#0F4C75', // Biru Utama
-        'secondary-medis': '#3282B8', // Biru Muda
-        'light-medis': '#BBE1FA',     // Biru Pucat Background
+        'dark-medis': '#0A2E2A',      // Deep Teal Gelap untuk teks kontras tinggi
+        'primary-medis': '#0A7C6E',   // Warna Dasar Teal Utama AIDEB
+        'secondary-medis': '#14B8A6', // Tosca Terang untuk aksen gradasi
+        'light-medis': '#F0FDFA',     // Teal Pucat untuk latar belakang & glow
       },
     },
   },

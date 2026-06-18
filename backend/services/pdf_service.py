@@ -24,11 +24,11 @@ def draw_page_decorations(canvas, doc):
     # 3. Keterangan teks footer
     canvas.setFont('Helvetica-Bold', 8)
     canvas.setFillColor(colors.HexColor('#1E293B')) # Slate 800
-    canvas.drawString(40, 38, "DETUJI-CT")
+    canvas.drawString(40, 38, "AIDEB")
     
     canvas.setFont('Helvetica', 8)
     canvas.setFillColor(colors.HexColor('#64748B')) # Slate 500
-    canvas.drawString(95, 38, "|   Sistem Analisis Citra Medis Ginjal berbasis Kecerdasan Buatan")
+    canvas.drawString(95, 38, "|   Sistem Analisis Citra Medis Epilepsi berbasis Kecerdasan Buatan")
     canvas.drawRightString(572, 38, "Halaman 1 dari 1")
     
     canvas.restoreState()
@@ -116,14 +116,14 @@ def generate_diagnosis_pdf(report_data, image_path, output_pdf_path):
     # ==================== KOP SURAT MODERN ====================
     # Menggunakan tabel 2 kolom: Kiri nama app, Kanan info institusi
     header_left = [
-        Paragraph("DETUJI-CT", title_style),
+        Paragraph("AIDEB", title_style),
         Paragraph("INTELLIGENT MEDICAL IMAGING REPORT", subtitle_style)
     ]
     
     header_right = [
         Paragraph("<b>LABORATORIUM RADIOLOGI DIGITAL</b>", ParagraphStyle('InstBold', parent=institution_style, fontName='Helvetica-Bold', textColor=colors.HexColor('#1E293B'))),
         Paragraph("Poltekkes Kemenkes Semarang", institution_style),
-        Paragraph("Email: detuji.support@poltekkes-smg.ac.id", institution_style)
+        Paragraph("Email: aideb.support@poltekkes-smg.ac.id", institution_style)
     ]
     
     header_table = Table([[header_left, header_right]], colWidths=[300, 230])
@@ -155,8 +155,8 @@ def generate_diagnosis_pdf(report_data, image_path, output_pdf_path):
     story.append(info_table)
     story.append(Spacer(1, 12))
 
-    # ==================== LAMPIRAN CITRA CT SCAN (FRAMED CARD) ====================
-    story.append(Paragraph("CITRA MEDIS YANG DIANALISIS (CT SCAN)", section_heading))
+    # ==================== LAMPIRAN CITRA MRI (FRAMED CARD) ====================
+    story.append(Paragraph("CITRA MEDIS YANG DIANALISIS (MRI)", section_heading))
     try:
         image_path_to_use = image_path
         if image_path.lower().endswith('.dcm'):
@@ -217,13 +217,13 @@ def generate_diagnosis_pdf(report_data, image_path, output_pdf_path):
     # ==================== INTERPRETASI & DIAGNOSIS AI (ALERT BOX) ====================
     story.append(Paragraph("HASIL ANALISIS KECERDASAN BUATAN (AI)", section_heading))
     
-    # Warna tema dinamis (Merah Rose untuk Tumor, Hijau Emerald untuk Normal)
-    is_tumor = "tumor" in prediction.lower()
-    bg_color = colors.HexColor('#FFF1F2') if is_tumor else colors.HexColor('#ECFDF5')
-    text_color = colors.HexColor('#BE123C') if is_tumor else colors.HexColor('#047857')
-    border_color = colors.HexColor('#F43F5E') if is_tumor else colors.HexColor('#10B981')
-    
-    status_label = "TERDETEKSI ADANYA MASSA (TUMOR GINJAL)" if is_tumor else "NORMAL (TIDAK TERDETEKSI TUMOR)"
+    # Warna tema dinamis (Merah Rose untuk Epilepsi, Hijau Emerald untuk Normal)
+    is_epilepsi = "epilepsi" in prediction.lower()
+    bg_color = colors.HexColor('#FFF1F2') if is_epilepsi else colors.HexColor('#ECFDF5')
+    text_color = colors.HexColor('#BE123C') if is_epilepsi else colors.HexColor('#047857')
+    border_color = colors.HexColor('#F43F5E') if is_epilepsi else colors.HexColor('#10B981')
+
+    status_label = "TERDETEKSI ADANYA EPILEPSI" if is_epilepsi else "NORMAL (TIDAK TERDETEKSI EPILEPSI)"
     
     result_title_style = ParagraphStyle(
         'ResultTitle',
@@ -244,7 +244,7 @@ def generate_diagnosis_pdf(report_data, image_path, output_pdf_path):
     result_box_data = [
         [Paragraph(f"<b>STATUS DIAGNOSIS: &nbsp;{status_label}</b>", result_title_style)],
         [Paragraph(f"Tingkat Kepercayaan Sistem (Confidence Score): &nbsp;<b>{confidence}%</b>", result_detail_style)],
-        [Paragraph(f"<i>Klasifikasi dilakukan menggunakan arsitektur deep learning MobileNet v2 yang telah dioptimalkan untuk citra CT Scan Ginjal.</i>", ParagraphStyle('ResultDesc', parent=result_detail_style, fontSize=7.5))]
+        [Paragraph(f"<i>Klasifikasi dilakukan menggunakan arsitektur deep learning YOLOv8n-cls yang telah dioptimalkan untuk deteksi epilepsi pada citra MRI otak.</i>", ParagraphStyle('ResultDesc', parent=result_detail_style, fontSize=7.5))]
     ]
     
     result_table = Table(result_box_data, colWidths=[530])
@@ -260,9 +260,9 @@ def generate_diagnosis_pdf(report_data, image_path, output_pdf_path):
     # ==================== TANDA TANGAN / DISCLAIMER (FOOTER CARD) ====================
     disclaimer_text = (
         "<font size=7 color='#64748B'><b>DISCLAIMER MEDIS:</b><br/>"
-        "Laporan analisis ini dihasilkan secara otomatis oleh sistem kecerdasan buatan komputer (Detuji-CT). "
+        "Laporan analisis ini dihasilkan secara otomatis oleh sistem kecerdasan buatan komputer (AIDEB). "
         "Hasil ini bersifat sebagai diagnosis sementara untuk membantu skrining awal. Laporan ini <b>wajib</b> "
-        "ditinjau, dikonfirmasi, dan ditandatangani oleh Dokter Spesialis Radiologi sebelum digunakan sebagai "
+        "ditinjau, dikonfirmasi, dan ditandatangani oleh Dokter Spesialis Neurologi sebelum digunakan sebagai "
         "dasar keputusan klinis atau tindakan medis.</font>"
     )
     

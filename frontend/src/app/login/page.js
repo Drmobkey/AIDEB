@@ -21,9 +21,8 @@ export default function LoginPage() {
         setError('');
         setLoading(true);
 
-
         try {
-            // Menembak endpoint API Modul 1 yang sudah kita buat di Flask
+            // Menembak endpoint API Login di Flask
             const res = await fetch(`${API_BASE_URL}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -34,7 +33,7 @@ export default function LoginPage() {
 
             if (res.ok) {
                 // Jika sukses, simpan token dummy ke localStorage browser agar statusnya "Terautentikasi"
-                localStorage.setItem('detuji_token', data.token);
+                localStorage.setItem('aideb_token', data.token);
                 // Lempar user masuk ke halaman dashboard utama
                 router.push('/');
             } else {
@@ -55,7 +54,7 @@ export default function LoginPage() {
                 {/* Background Image */}
                 <img
                     src="/background_detuji_ct.jpg"
-                    alt="Radiologist examining CT Scan"
+                    alt="Neurologist examining Brain MRI Scan"
                     className="absolute inset-0 w-full h-full object-cover"
                 />
 
@@ -75,19 +74,19 @@ export default function LoginPage() {
                                 <Activity className="w-4 h-4 text-light-medis" />
                             </div>
                             <span className="text-[10px] font-black tracking-[0.2em] text-light-medis/80 uppercase">
-                                Detuji-CT Medical Platform
+                                AIDEB Brain Diagnostic Platform
                             </span>
                         </div>
                         <h1 className="text-4xl xl:text-5xl font-black text-white leading-[1.15] tracking-tight">
                             Sistem Deteksi{' '}
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-light-medis via-secondary-medis to-light-medis">
-                                Tumor Ginjal
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-secondary-medis via-light-medis to-secondary-medis">
+                                Epilepsi Otak
                             </span>
                             <br />
-                            Berbasis Citra CT Scan
+                            Berbasis Citra MRI
                         </h1>
                         <p className="text-slate-300/80 mt-4 text-sm leading-relaxed max-w-lg">
-                            Gunakan kekuatan kecerdasan buatan berbasis deep learning untuk membantu proses skrining awal dan analisis medis organ ginjal secara cepat, presisi, dan aman.
+                            Gunakan kekuatan kecerdasan buatan berbasis deep learning untuk membantu proses skrining awal dan analisis medis tanda-tanda epilepsi secara cepat, presisi, dan aman.
                         </p>
                         <div className="flex items-center gap-3 mt-7">
                             <div className="h-[3px] w-16 bg-gradient-to-r from-secondary-medis to-light-medis rounded-full" />
@@ -113,14 +112,14 @@ export default function LoginPage() {
                             <Stethoscope className="w-6 h-6" />
                         </div>
                         <span className="text-2xl font-black text-dark-medis tracking-tight">
-                            Detuji<span className="text-primary-medis">-CT</span>
+                            AIDEB<span className="text-primary-medis">.AI</span>
                         </span>
                     </div>
 
                     {/* Subtitle */}
                     <div className="text-center mb-8">
                         <h2 className="text-xl font-extrabold text-dark-medis mt-4">Masuk Ke Sistem</h2>
-                        <p className="text-slate-400 text-xs mt-1.5 font-medium">Akses dashboard skrining radiologi berbasis AI</p>
+                        <p className="text-slate-400 text-xs mt-1.5 font-medium">Akses dashboard skrining MRI Epilepsi berbasis AI</p>
                     </div>
 
                     {/* Login Card */}
@@ -208,7 +207,7 @@ export default function LoginPage() {
                     <div className="mt-7 text-center">
                         <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase bg-slate-50 border border-slate-100 px-3.5 py-1.5 rounded-lg inline-flex items-center gap-1.5">
                             <Activity className="w-3 h-3 text-primary-medis" />
-                            Powered by CT-AI Deep Learning
+                            Powered by MRI-AI Deep Learning
                         </span>
                     </div>
 
