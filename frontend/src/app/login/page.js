@@ -22,7 +22,6 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            // Menembak endpoint API Login di Flask
             const res = await fetch(`${API_BASE_URL}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -31,13 +30,16 @@ export default function LoginPage() {
 
             const data = await res.json();
 
-            if (res.ok) {
-                // Jika sukses, simpan token dummy ke localStorage browser agar statusnya "Terautentikasi"
+            // Gunakan validasi berdasarkan flag .success dari payload Flask
+            if (res.ok && data.success) {
+                console.log("=== AIDEB LOGIN SUCCESS ===");
                 localStorage.setItem('aideb_token', data.token);
-                // Lempar user masuk ke halaman dashboard utama
+                localStorage.setItem('detuji_token', data.token);
+
+                // GANTI baris window.location.href menjadi router.push murni Next.js:
                 router.push('/');
             } else {
-                setError(data.error || 'Terjadi kesalahan login.');
+                setError(data.message || 'Terjadi kesalahan login.');
             }
         } catch (err) {
             setError('Gagal terhubung ke server backend Flask.');

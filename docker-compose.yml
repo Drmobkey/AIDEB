@@ -23,23 +23,23 @@ services:
           memory: 1.5G # Batasi penggunaan RAM backend maksimal 1.5 GB
     restart: always
 
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #     args:
-  #       # Masukkan URL/IP VPS Anda pada port 5003 di sini
-  #       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5003}
-  #   container_name: aideb-frontend
-  #   ports:
-  #     - "3001:3000" # Memetakan port 3001 host VPS ke port 3000 container
-  #   environment:
-  #     - PORT=3000
-  #     - NODE_ENV=production
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         memory: 500M # Batasi penggunaan RAM frontend maksimal 500 MB
-  #   restart: always
-  #   depends_on:
-  #     - backend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Masukkan URL/IP VPS Anda pada port 5003 di sini
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5003}
+    container_name: aideb-frontend
+    ports:
+      - "3002:3000" # Memetakan port 3001 host VPS ke port 3000 container
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+    deploy:
+      resources:
+        limits:
+          memory: 500M # Batasi penggunaan RAM frontend maksimal 500 MB
+    restart: always
+    depends_on:
+      - backend

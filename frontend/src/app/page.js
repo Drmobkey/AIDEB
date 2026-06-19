@@ -25,10 +25,18 @@ export default function DashboardPage() {
 
   // --- PROTEKSI HALAMAN (SOP Keamanan Modul 1) ---
   useEffect(() => {
-    const token = localStorage.getItem('aideb_token');
+    const aidebToken = localStorage.getItem('aideb_token');
+    const detujiToken = localStorage.getItem('detuji_token');
+    console.log("=== AIDEB DASHBOARD PROTECT ===");
+    console.log("aideb_token:", aidebToken);
+    console.log("detuji_token:", detujiToken);
+
+    const token = aidebToken || detujiToken;
     if (!token) {
+      console.log("Token tidak ditemukan! Melempar kembali ke /login...");
       router.push('/login');
     } else {
+      console.log("Token ditemukan! Mengizinkan akses dashboard...");
       setAuthorized(true);
     }
   }, [router]);
@@ -36,6 +44,7 @@ export default function DashboardPage() {
   // Fungsi Logout Admin
   const handleLogout = () => {
     localStorage.removeItem('aideb_token');
+    localStorage.removeItem('detuji_token');
     router.push('/login');
   };
 
@@ -203,7 +212,16 @@ export default function DashboardPage() {
     }
   };
 
-  if (!authorized) return null; // Cegah berkedip sebelum dilempar ke login
+  if (!authorized) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center font-sans">
+        <div className="w-10 h-10 border-4 border-cyan-500/30 border-t-cyan-400 rounded-full animate-spin mb-4" />
+        <p className="text-cyan-400 text-xs font-bold tracking-widest uppercase animate-pulse">
+          Memverifikasi Otorisasi Sesi...
+        </p>
+      </div>
+    );
+  }
 
   const isEpilepsi = analysisResult?.prediction?.toLowerCase().includes('epilepsi');
   const isLowConfidence = analysisResult?.confidence < 70;
