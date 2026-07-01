@@ -29,7 +29,7 @@ def download_pdf():
     image_filename = data['saved_filename']
     image_path = os.path.join(Config.UPLOAD_FOLDER, image_filename)
     if not os.path.exists(image_path):
-        return jsonify({"error": "Berkas citra medis CT Scan tidak ditemukan di server!"}), 404
+        return jsonify({"error": "Berkas citra medis MRI tidak ditemukan di server!"}), 404
         
     # 4. Buat nama berkas PDF yang aman diikuti no rekam medis dan nama pasien
     safe_name = "".join(c for c in str(data['nama_pasien']) if c.isalnum() or c in (' ', '_', '-')).strip()

@@ -34,14 +34,16 @@ def allowed_file(filename):
         filename.rsplit('.', 1)[1].lower() in Config.ALLOWED_EXTENSIONS
 
 
-def is_not_medical_image(file_stream, threshold=30.0):
+def is_not_medical_image(file_stream, threshold=None):
     """
-    Validasi ringan apakah gambar terlihat seperti citra medis (grayscale / near-grayscale).
-    MRI otak umumnya grayscale, sehingga selisih antar channel RGB kecil.
-    Threshold dinaikkan ke 30.0 untuk mengakomodasi variasi MRI yang mungkin agak berwarna
-    karena pemrosesan CLAHE atau preprocessing lain.
-    Mengembalikan True jika gambar TERLALU berwarna (bukan medis).
+    Validasi terpadu apakah gambar terlihat seperti citra medis (MRI otak):
+    1. Harus berupa gambar grayscale / near-grayscale (berdasarkan deviasi warna RGB).
+    2. Harus memiliki struktur visual khas MRI otak (4 sudut hitam pekat & tengah memiliki objek terang).
+    Mengembalikan True jika gambar TIDAK VALID sebagai citra MRI.
     """
+    if threshold is None:
+        threshold = getattr(Config, 'COLOR_THRESHOLD', 10.0)
+
     # 1. Skip validasi untuk DICOM — sudah pasti medis
     filename = getattr(file_stream, 'filename', '')
     if filename and filename.rsplit('.', 1)[-1].lower() == 'dcm':
@@ -57,7 +59,7 @@ def is_not_medical_image(file_stream, threshold=30.0):
     if img_bgr is None:
         return True
 
-    # 4. Hitung rata-rata deviasi antar channel warna (R, G, B)
+    # 4. Hitung rata-rata deviasi antar channel warna (R, G, B) untuk cek grayscale
     b, g, r = cv2.split(img_bgr)
     diff_rg = np.abs(r.astype(np.int16) - g.astype(np.int16))
     diff_rb = np.abs(r.astype(np.int16) - b.astype(np.int16))
@@ -65,7 +67,36 @@ def is_not_medical_image(file_stream, threshold=30.0):
     mean_diff = (np.mean(diff_rg) + np.mean(diff_rb) + np.mean(diff_gb)) / 3.0
 
     # Jika rata-rata selisih warna di atas threshold → terlalu berwarna → bukan medis
-    return mean_diff > threshold
+    if mean_diff > threshold:
+        return True
+
+    # 5. Validasi struktur khas MRI (sudut hitam pekat & bagian tengah ada objek terang)
+    h, w = img_bgr.shape[:2]
+    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+
+    corner_thresh = getattr(Config, 'MRI_CORNER_THRESHOLD', 50.0)
+    center_thresh = getattr(Config, 'MRI_CENTER_THRESHOLD', 15.0)
+
+    # Cek kecerahan di 4 sudut gambar (2% area sudut paling pojok)
+    cw, ch = max(int(w * 0.02), 1), max(int(h * 0.02), 1)
+    corners = [
+        gray[0:ch, 0:cw],       # Kiri atas
+        gray[0:ch, w-cw:w],     # Kanan atas
+        gray[h-ch:h, 0:cw],     # Kiri bawah
+        gray[h-ch:h, w-cw:w]    # Kanan bawah
+    ]
+    for corner in corners:
+        if np.mean(corner) > corner_thresh:
+            return True  # Sudut terlalu terang (bukan background hitam MRI)
+
+    # Cek kecerahan di area tengah (40% area tengah)
+    cx_start, cx_end = int(w * 0.3), int(w * 0.7)
+    cy_start, cy_end = int(h * 0.3), int(h * 0.7)
+    center_area = gray[cy_start:cy_end, cx_start:cx_end]
+    if np.mean(center_area) < center_thresh:
+        return True  # Bagian tengah terlalu gelap (bukan objek otak)
+
+    return False
 
 
 def process_upload_validation(file):
@@ -103,7 +134,7 @@ def process_upload_validation(file):
         if is_not_medical_image(file):
             return {
                 "success": False,
-                "message": "File ditolak! Gambar terdeteksi terlalu berwarna dan tidak dikenali sebagai citra MRI/CT Scan medis.",
+                "message": "File ditolak! Gambar tidak dikenali sebagai citra medis MRI/CT Scan yang valid.",
                 "status_code": 400
             }
 

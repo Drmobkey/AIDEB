@@ -481,7 +481,7 @@ export default function DashboardPage() {
                 )}
 
                 {/* Progress Bar Akurasi Tingkat Kepercayaan */}
-                <div className="space-y-2 p-4 bg-slate-50/60 rounded-xl border border-slate-100">
+                {/* <div className="space-y-2 p-4 bg-slate-50/60 rounded-xl border border-slate-100">
                   <div className="flex items-center justify-between text-xs font-bold">
                     <span className="text-slate-400 uppercase tracking-wider text-[10px]">Tingkat Kepercayaan AI</span>
                     <span className="text-primary-medis text-sm font-black">{analysisResult.confidence.toString().replace('.', ',')}%</span>
@@ -497,7 +497,7 @@ export default function DashboardPage() {
                       style={{ width: `${analysisResult.confidence}%`, transition: 'width 1.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
                     />
                   </div>
-                </div>
+                </div> */}
 
                 {/* Tabel Informasi Ringkasan Metadata Berkas Pasien */}
                 <div className="grid grid-cols-2 gap-3 pt-1">
