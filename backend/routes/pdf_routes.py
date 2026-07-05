@@ -1,5 +1,5 @@
 import os
-import uuid
+import json
 from datetime import datetime
 from flask import Blueprint, request, jsonify, send_file
 from config import Config
@@ -25,13 +25,28 @@ def download_pdf():
         if val is None or str(val).strip() == '':
             return jsonify({"error": f"Parameter '{field}' wajib diisi!"}), 400
             
-    # 3. Cari gambar scan di server
+    # 3. Cari gambar scan utama (representatif) di server
     image_filename = data['saved_filename']
     image_path = os.path.join(Config.UPLOAD_FOLDER, image_filename)
     if not os.path.exists(image_path):
         return jsonify({"error": "Berkas citra medis MRI tidak ditemukan di server!"}), 404
-        
-    # 4. Buat nama berkas PDF yang aman diikuti no rekam medis dan nama pasien
+
+    # 4. Parse per_image_results jika ada (multifile)
+    per_image_results = data.get('per_image_results', [])
+    if isinstance(per_image_results, str):
+        try:
+            per_image_results = json.loads(per_image_results)
+        except (json.JSONDecodeError, TypeError):
+            per_image_results = []
+
+    # Validasi bahwa file-file lampiran ada di server
+    validated_per_image = []
+    for item in per_image_results:
+        item_path = os.path.join(Config.UPLOAD_FOLDER, item.get('filename', ''))
+        if os.path.exists(item_path):
+            validated_per_image.append(item)
+
+    # 5. Buat nama berkas PDF yang aman diikuti no rekam medis dan nama pasien
     safe_name = "".join(c for c in str(data['nama_pasien']) if c.isalnum() or c in (' ', '_', '-')).strip()
     safe_rm = "".join(c for c in str(data['no_rm']) if c.isalnum() or c in (' ', '_', '-')).strip()
     
@@ -45,7 +60,7 @@ def download_pdf():
     
     try:
         # Panggil service ReportLab untuk merakit PDF
-        generate_diagnosis_pdf(data, image_path, pdf_path)
+        generate_diagnosis_pdf(data, image_path, pdf_path, per_image_results=validated_per_image)
         
         # Kirim file PDF sebagai attachment download
         return send_file(

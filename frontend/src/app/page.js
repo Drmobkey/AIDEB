@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload, FileText, LogOut, ShieldCheck, User, FolderHeart, AlertCircle, CheckCircle, Download, X, Activity, Cpu } from 'lucide-react';
+import { Upload, FileText, LogOut, ShieldCheck, User, FolderHeart, AlertCircle, CheckCircle, Download, X, Activity, Cpu, Images } from 'lucide-react';
 import { API_BASE_URL } from '@/config';
 
 export default function DashboardPage() {
@@ -13,15 +13,17 @@ export default function DashboardPage() {
   const [noRm, setNoRm] = useState('');
   const [namaPasien, setNamaPasien] = useState('');
 
-  // 2. State File Gambar & Previews
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  // 2. State File Gambar & Previews (multifile)
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
 
   // 3. State Hasil Analisis AI Backend
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [analysisResult, setAnalysisResult] = useState(null);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const MAX_FILES = 10;
 
   // --- PROTEKSI HALAMAN (SOP Keamanan Modul 1) ---
   useEffect(() => {
@@ -48,43 +50,89 @@ export default function DashboardPage() {
     router.push('/login');
   };
 
-  // Handler untuk menghapus file yang dipilih
-  const handleRemoveFile = () => {
-    setSelectedFile(null);
-    setImagePreview(null);
+  // Handler untuk menghapus semua file yang dipilih
+  const handleRemoveAllFiles = () => {
+    // Revoke semua object URLs untuk mencegah memory leak
+    imagePreviews.forEach(p => {
+      if (p.url) URL.revokeObjectURL(p.url);
+    });
+    setSelectedFiles([]);
+    setImagePreviews([]);
     setAnalysisResult(null);
     setError('');
   };
 
-  // Handler saat user memilih file gambar dari komputer
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const allowedExtensions = ['png', 'jpg', 'jpeg', 'dcm'];
-      const fileExtension = file.name.split('.').pop().toLowerCase();
+  // Handler untuk menghapus satu file tertentu
+  const handleRemoveSingleFile = (indexToRemove) => {
+    const preview = imagePreviews[indexToRemove];
+    if (preview?.url) URL.revokeObjectURL(preview.url);
 
-      if (!allowedExtensions.includes(fileExtension)) {
-        setError(`Format berkas tidak diizinkan! Hanya menerima format: ${allowedExtensions.join(', ').toUpperCase()}`);
-        setSelectedFile(null);
-        setImagePreview(null);
-        setAnalysisResult(null);
-        e.target.value = ''; // Reset input agar bisa pilih ulang file yang sama jika diinginkan
-        return;
-      }
+    const newFiles = selectedFiles.filter((_, i) => i !== indexToRemove);
+    const newPreviews = imagePreviews.filter((_, i) => i !== indexToRemove);
 
-      setSelectedFile(file);
-      // Membuat URL temporer agar gambar bisa dipratinjau langsung di UI Next.js
-      setImagePreview(URL.createObjectURL(file));
-      // Reset hasil analisis lama jika user mengganti gambar baru
+    setSelectedFiles(newFiles);
+    setImagePreviews(newPreviews);
+
+    if (newFiles.length === 0) {
       setAnalysisResult(null);
+    }
+    setError('');
+  };
+
+  // Handler saat user memilih file gambar dari komputer (multifile)
+  const handleFileChange = (e) => {
+    const newFilesRaw = Array.from(e.target.files);
+    if (newFilesRaw.length === 0) return;
+
+    const allowedExtensions = ['png', 'jpg', 'jpeg', 'dcm'];
+    const validFiles = [];
+    const validPreviews = [];
+    let hasInvalid = false;
+
+    for (const file of newFilesRaw) {
+      const fileExtension = file.name.split('.').pop().toLowerCase();
+      if (!allowedExtensions.includes(fileExtension)) {
+        hasInvalid = true;
+        continue;
+      }
+      validFiles.push(file);
+
+      const isDcm = fileExtension === 'dcm';
+      validPreviews.push({
+        name: file.name,
+        isDcm,
+        url: isDcm ? null : URL.createObjectURL(file)
+      });
+    }
+
+    // Gabungkan dengan file yang sudah ada
+    const combinedFiles = [...selectedFiles, ...validFiles];
+    const combinedPreviews = [...imagePreviews, ...validPreviews];
+
+    if (combinedFiles.length > MAX_FILES) {
+      setError(`Maksimal ${MAX_FILES} file! Anda mencoba mengunggah ${combinedFiles.length} file.`);
+      // Revoke URLs file yang baru saja dibuat tapi tidak dipakai
+      validPreviews.forEach(p => { if (p.url) URL.revokeObjectURL(p.url); });
+      e.target.value = '';
+      return;
+    }
+
+    if (hasInvalid) {
+      setError('Beberapa file memiliki format yang tidak diizinkan dan telah diabaikan. Hanya menerima: PNG, JPG, JPEG, DCM.');
+    } else {
       setError('');
     }
+
+    setSelectedFiles(combinedFiles);
+    setImagePreviews(combinedPreviews);
+    setAnalysisResult(null);
+    e.target.value = ''; // Reset input agar bisa pilih ulang
   };
 
   // --- SUBMIT DATA KE BACKEND FLASK ---
   const handleAnalyse = async (e) => {
     e.preventDefault();
-    if (!selectedFile) {
+    if (selectedFiles.length === 0) {
       setError('Silakan pilih berkas gambar MRI terlebih dahulu!');
       return;
     }
@@ -93,9 +141,11 @@ export default function DashboardPage() {
     setLoading(true);
     setAnalysisResult(null);
 
-    // 1. Membungkus data ke FormData
+    // 1. Membungkus data ke FormData (multifile)
     const formData = new FormData();
-    formData.append('file', selectedFile);
+    selectedFiles.forEach((file) => {
+      formData.append('files', file);
+    });
     formData.append('nama_pasien', namaPasien.trim() || 'Anonim');
     formData.append('no_rm', noRm.trim() || '-');
 
@@ -117,6 +167,9 @@ export default function DashboardPage() {
           filename: finalData.saved_filename || finalData.filename || 'file_scan.png',
           prediction: finalData.prediction || 'Normal',
           confidence: finalData.confidence !== undefined ? finalData.confidence : 100.0,
+          total_files: finalData.total_files || 1,
+          prediction_summary: finalData.prediction_summary || {},
+          per_image_results: finalData.per_image_results || [],
           timestamp: finalData.timestamp || new Date().toLocaleString(),
           message: finalData.message
         });
@@ -145,10 +198,12 @@ export default function DashboardPage() {
           analysis_id: analysisResult.analysis_id,
           nama_pasien: analysisResult.nama_pasien,
           no_rm: analysisResult.no_rm,
-          saved_filename: analysisResult.filename, // Memastikan key sesuai blueprint route PDF
+          saved_filename: analysisResult.filename,
           prediction: analysisResult.prediction,
           confidence: analysisResult.confidence,
-          timestamp: analysisResult.timestamp
+          timestamp: analysisResult.timestamp,
+          total_files: analysisResult.total_files,
+          per_image_results: analysisResult.per_image_results,
         }),
       });
 
@@ -309,30 +364,61 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* AREA BOX UPLOAD GAMBAR */}
+            {/* AREA BOX UPLOAD GAMBAR (MULTIFILE) */}
             <div>
               <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5 tracking-wider">
-                Unggah Citra MRI Otak
+                Unggah Citra MRI Otak <span className="text-slate-400 normal-case">(Maks. {MAX_FILES} file)</span>
               </label>
-              <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-slate-300/70 rounded-2xl bg-gradient-to-b from-slate-50/50 to-slate-50 hover:from-primary-medis/[0.02] hover:to-secondary-medis/[0.03] hover:border-primary-medis/30 cursor-pointer group transition-all duration-300 overflow-hidden relative">
+              <label className="flex flex-col items-center justify-center w-full min-h-[16rem] border-2 border-dashed border-slate-300/70 rounded-2xl bg-gradient-to-b from-slate-50/50 to-slate-50 hover:from-primary-medis/[0.02] hover:to-secondary-medis/[0.03] hover:border-primary-medis/30 cursor-pointer group transition-all duration-300 overflow-hidden relative p-4">
 
-                {imagePreview ? (
-                  selectedFile?.name?.toLowerCase().endsWith('.dcm') ? (
-                    <div className="flex flex-col items-center justify-center p-6 text-center h-full w-full animate-fade-in">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-teal-50 to-teal-100 text-teal-600 flex items-center justify-center mb-3 border border-teal-200/80 shadow-sm">
-                        <FileText className="w-7 h-7" />
+                {selectedFiles.length > 0 ? (
+                  <div className="w-full animate-fade-in">
+                    {/* Header info jumlah file */}
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <div className="flex items-center gap-1.5 bg-primary-medis/10 text-primary-medis text-[10px] font-bold px-3 py-1.5 rounded-full border border-primary-medis/20">
+                        <Images className="w-3.5 h-3.5" />
+                        {selectedFiles.length} file dipilih
                       </div>
-                      <p className="text-sm font-bold text-dark-medis max-w-[90%] truncate">{selectedFile?.name}</p>
-                      <p className="text-[11px] text-slate-400 mt-1">Berkas Medis DICOM (Pratinjau visual tidak didukung oleh browser)</p>
-                      <p className="text-[10px] text-primary-medis bg-teal-50 border border-teal-100 px-2.5 py-1 rounded-full mt-2.5 font-bold uppercase shadow-sm">
-                        Format DICOM Terdeteksi
-                      </p>
                     </div>
-                  ) : (
-                    <picture className="animate-fade-in">
-                      <img src={imagePreview} alt="Preview MRI" className="w-full h-full object-contain p-2" />
-                    </picture>
-                  )
+
+                    {/* Grid thumbnails */}
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 w-full">
+                      {imagePreviews.map((preview, idx) => (
+                        <div key={idx} className="relative group/thumb bg-slate-100 rounded-xl overflow-hidden aspect-square border border-slate-200 hover:border-primary-medis/40 transition-all">
+                          {preview.isDcm ? (
+                            <div className="flex flex-col items-center justify-center h-full p-1.5">
+                              <FileText className="w-5 h-5 text-teal-500 mb-1" />
+                              <span className="text-[7px] text-slate-400 text-center leading-tight truncate w-full px-0.5">{preview.name}</span>
+                              <span className="text-[6px] text-teal-500 font-bold mt-0.5">DICOM</span>
+                            </div>
+                          ) : (
+                            <img src={preview.url} alt={preview.name} className="w-full h-full object-cover" />
+                          )}
+                          {/* Tombol hapus per file */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              handleRemoveSingleFile(idx);
+                            }}
+                            className="absolute top-1 right-1 bg-red-500/90 hover:bg-red-600 text-white rounded-full p-0.5 transition-all z-20 shadow-sm opacity-0 group-hover/thumb:opacity-100 active:scale-90"
+                            title="Hapus file ini"
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* Tombol tambah file lagi */}
+                      {selectedFiles.length < MAX_FILES && (
+                        <div className="flex flex-col items-center justify-center bg-slate-50 rounded-xl aspect-square border-2 border-dashed border-slate-300/60 hover:border-primary-medis/30 transition-all">
+                          <Upload className="w-4 h-4 text-slate-400" />
+                          <span className="text-[7px] text-slate-400 mt-1">Tambah</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center p-6 text-center">
                     <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary-medis/10 group-hover:text-primary-medis transition-all duration-300 mb-3 group-hover:scale-105">
@@ -340,18 +426,21 @@ export default function DashboardPage() {
                     </div>
                     <p className="text-sm font-bold text-dark-medis">Pilih Berkas Citra MRI</p>
                     <p className="text-[11px] text-slate-400 mt-1">Mendukung format PNG, JPG, JPEG, atau DICOM (.dcm)</p>
+                    <p className="text-[10px] text-primary-medis/60 mt-0.5">Bisa memilih beberapa file sekaligus (maks. {MAX_FILES})</p>
                   </div>
                 )}
-                {imagePreview && (
+
+                {/* Tombol hapus semua file */}
+                {selectedFiles.length > 0 && (
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
-                      handleRemoveFile();
+                      handleRemoveAllFiles();
                     }}
                     className="absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 transition-all z-20 shadow-md flex items-center justify-center border border-red-400 active:scale-90 hover:shadow-lg"
-                    title="Hapus file"
+                    title="Hapus semua file"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -373,14 +462,14 @@ export default function DashboardPage() {
                     <div className="text-cyan-400 text-[10px] font-black tracking-[0.15em] uppercase flex flex-col items-center gap-1.5">
                       <span className="flex items-center gap-2 animate-pulse">
                         <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                        Memindai Citra Otak...
+                        Memindai {selectedFiles.length} Citra Otak...
                       </span>
                       <span className="text-[9px] text-cyan-400/50 font-bold tracking-wider">Deep Learning AI Analysis</span>
                     </div>
                   </div>
                 )}
 
-                <input type="file" accept=".png,.jpg,.jpeg,.dcm" onChange={handleFileChange} className="hidden" />
+                <input type="file" accept=".png,.jpg,.jpeg,.dcm" multiple onChange={handleFileChange} className="hidden" />
               </label>
             </div>
 
@@ -395,18 +484,18 @@ export default function DashboardPage() {
             {/* Tombol trigger analisis AI */}
             <button
               type="submit"
-              disabled={loading || !selectedFile}
+              disabled={loading || selectedFiles.length === 0}
               className="w-full py-3.5 bg-gradient-to-r from-primary-medis to-secondary-medis hover:brightness-110 active:scale-[0.99] text-white rounded-xl font-bold text-sm transition-all duration-300 transform shadow-lg shadow-primary-medis/15 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Sedang Memproses Pemindaian AI...
+                  Sedang Memproses {selectedFiles.length} Citra AI...
                 </>
               ) : (
                 <>
                   <Cpu className="w-4 h-4" />
-                  Mulai Analisis Medis
+                  Mulai Analisis Medis {selectedFiles.length > 0 ? `(${selectedFiles.length} file)` : ''}
                 </>
               )}
             </button>
@@ -430,7 +519,7 @@ export default function DashboardPage() {
               {/* PANEL HASIL SCAN AI */}
               <div className="mt-5 space-y-4 animate-fade-in">
 
-                {/* Kotak Besar Status Diagnosis Penyakit */}
+                {/* Kotak Besar Status Diagnosis Penyakit (HASIL DOMINAN) */}
                 <div className={`p-5 rounded-2xl border flex flex-col items-center justify-center text-center ${isEpilepsi
                   ? 'bg-gradient-to-br from-red-50 to-red-50/50 border-red-200/70 text-red-900'
                   : 'bg-gradient-to-br from-emerald-50 to-green-50/50 border-green-200/70 text-green-900'
@@ -462,6 +551,14 @@ export default function DashboardPage() {
                       'Struktur jaringan sel dan anatomi otak normal, bersih dari indikasi epilepsi.'
                     )}
                   </p>
+
+                  {/* Badge jumlah citra dianalisis (multifile) */}
+                  {analysisResult.total_files > 1 && (
+                    <div className="mt-3 flex items-center gap-1.5 bg-white/70 text-slate-500 text-[9px] font-bold px-3 py-1.5 rounded-full border border-slate-200/80">
+                      <Images className="w-3 h-3" />
+                      Hasil dominan dari {analysisResult.total_files} citra yang dianalisis
+                    </div>
+                  )}
                 </div>
 
                 {/* AREA PERINGATAN BILA AKURASI RENDAH / MODEL AI RAGU-RAGU */}
@@ -479,25 +576,6 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 )}
-
-                {/* Progress Bar Akurasi Tingkat Kepercayaan */}
-                {/* <div className="space-y-2 p-4 bg-slate-50/60 rounded-xl border border-slate-100">
-                  <div className="flex items-center justify-between text-xs font-bold">
-                    <span className="text-slate-400 uppercase tracking-wider text-[10px]">Tingkat Kepercayaan AI</span>
-                    <span className="text-primary-medis text-sm font-black">{analysisResult.confidence.toString().replace('.', ',')}%</span>
-                  </div>
-                  <div className="w-full h-2.5 bg-slate-200/60 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full animate-progress-glow ${isLowConfidence
-                        ? 'bg-gradient-to-r from-amber-400 to-amber-500'
-                        : isEpilepsi
-                          ? 'bg-gradient-to-r from-red-400 to-red-500'
-                          : 'bg-gradient-to-r from-emerald-400 to-green-500'
-                        }`}
-                      style={{ width: `${analysisResult.confidence}%`, transition: 'width 1.2s cubic-bezier(0.16, 1, 0.3, 1)' }}
-                    />
-                  </div>
-                </div> */}
 
                 {/* Tabel Informasi Ringkasan Metadata Berkas Pasien */}
                 <div className="grid grid-cols-2 gap-3 pt-1">
